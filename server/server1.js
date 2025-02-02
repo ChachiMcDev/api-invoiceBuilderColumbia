@@ -15,115 +15,132 @@ app.use(cors());
 //   })
 // );
 
-//test connection
-app.get("/api/test", async (req, res) => {
-  // res.setHeader('Access-Control-Allow-Methods', 'GET');
-  try {
-    const result = [
-      {
+
+const invoiceData = [
+    {
         _id: "1",
         invoiceNumber: 1,
+        description: "Holiday uptick",
         companyName: "Test Company",
         address: "123 Test St",
         city: "Test City",
         state: "TS",
         zip: "12345",
         products: [
-          {
-            itemName: "koolaid",
-            itemPrice: 500,
-            deposit: 100,
-            discount: 50,
-            quantity: 5,
-          },
-          {
-            itemName: "soda",
-            itemPrice: 300,
-            deposit: 0,
-            discount: 0,
-            quantity: 20,
-          },
-          {
-            itemName: "green juice",
-            itemPrice: 500,
-            deposit: 0,
-            discount: 0,
-            quantity: 35,
-          },
+            {
+                itemName: "koolaid",
+                itemPrice: 500,
+                deposit: 100,
+                discount: 50,
+                quantity: 5,
+            },
+            {
+                itemName: "soda",
+                itemPrice: 300,
+                deposit: 0,
+                discount: 0,
+                quantity: 20,
+            },
+            {
+                itemName: "green juice",
+                itemPrice: 500,
+                deposit: 0,
+                discount: 0,
+                quantity: 35,
+            },
         ],
-      },
-      {
+    },
+    {
         _id: "2",
         invoiceNumber: 1,
+        description: "Standard re-order",
         companyName: "Test Company",
         address: "123 Test St",
         city: "Test City",
         state: "TS",
         zip: "12345",
         products: [
-          {
-            itemName: "redbull",
-            itemPrice: 500,
-            deposit: 100,
-            discount: 50,
-            quantity: 5,
-          },
-          {
-            itemName: "cider",
-            itemPrice: 300,
-            deposit: 0,
-            discount: 0,
-            quantity: 20,
-          },
-          {
-            itemName: "ice tea",
-            itemPrice: 500,
-            deposit: 0,
-            discount: 0,
-            quantity: 35,
-          },
+            {
+                itemName: "redbull",
+                itemPrice: 500,
+                deposit: 100,
+                discount: 50,
+                quantity: 5,
+            },
+            {
+                itemName: "cider",
+                itemPrice: 300,
+                deposit: 0,
+                discount: 0,
+                quantity: 20,
+            },
+            {
+                itemName: "ice tea",
+                itemPrice: 500,
+                deposit: 0,
+                discount: 0,
+                quantity: 35,
+            },
         ],
-      },
-      {
+    },
+    {
         _id: "3",
         invoiceNumber: 1,
+        description: "get down for the hodown",
         companyName: "Test Company",
         address: "123 Test St",
         city: "Test City",
         state: "TS",
         zip: "12345",
         products: [
-          {
-            itemName: "maas",
-            itemPrice: 500,
-            deposit: 100,
-            discount: 50,
-            quantity: 5,
-          },
-          {
-            itemName: "beer",
-            itemPrice: 300,
-            deposit: 0,
-            discount: 0,
-            quantity: 20,
-          },
-          {
-            itemName: "wine",
-            itemPrice: 500,
-            deposit: 0,
-            discount: 0,
-            quantity: 35,
-          },
+            {
+                itemName: "maas",
+                itemPrice: 500,
+                deposit: 100,
+                discount: 50,
+                quantity: 5,
+            },
+            {
+                itemName: "beer",
+                itemPrice: 300,
+                deposit: 0,
+                discount: 0,
+                quantity: 20,
+            },
         ],
-      },
-    ];
-    res.status(200).json(result);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Bad Request" });
-  }
+    },
+];
+
+//test connection
+app.get("/api/test", async (req, res) => {
+    // res.setHeader('Access-Control-Allow-Methods', 'GET');
+    try {
+
+        res.status(200).json(invoiceData);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Bad Request" });
+    }
 });
 
+
+app.get('/api/getinvoice/:id', async (req, res) => {
+    // res.setHeader('Access-Control-Allow-Methods', 'GET');
+    try {
+
+        const paramId = req.params.id;
+        //const singleInvoice = await dbconnect.findOne({ _id: new ObjectId(id) });
+        const singleInvoice = invoiceData.find((invoice) => invoice._id === paramId);
+        res.status(200).json(singleInvoice);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error getting document" });
+    } finally {
+        // await client.close();
+    }
+});
+
+
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server is running on http://localhost:${port}`);
 });
