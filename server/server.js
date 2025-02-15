@@ -1,327 +1,293 @@
-const express = require('express');
-const { dbconnect, client } = require('./mongoConfig');
-const path = require('path');
+const express = require("express");
+const path = require("path");
 const app = express();
 const port = 3000;
-const cors = require('cors');
-ObjectId = require('mongodb').ObjectId
-const { MongoClient } = require('mongodb');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-
+const cors = require("cors");
+const moment = require("moment");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-    origin: 'http://192.168.1.5:9001' // Replace with your React app's origin
-}));
+//allow cross origin requests
+app.use(cors());
 
-
-
-//test Mongo connection
-app.get('/api/test', async (req, res) => {
-    const dbName = 'columbiainvoices';
-    const db = client.db(dbName);
-    const collectionName = db.collection('invoices');
-
-    try {
-        await client.connect();
-        const result = await collectionName.find({}).toArray();
-        res.status(200).json(result);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error');
-    } finally {
-        await client.close();
-    }
-});
-
-//add invoices to mongo
-app.post('/api/addinvoice', async (req, res) => {
-
-    res.setHeader('Access-Control-Allow-Methods', 'POST');
-    try {
-        await client.connect();
-        //const document = req.body; // Get data from the POST request body
-        const invoice = {
-            userid: '67957c969b1488af8a329bb0',
-            companyName: 'Johnnys Smoke Shop',
-            companyId: 1256,
-            invoiceNumber: 1,
-            invoiceDate: '2025-10-01',
-            products: {
-                1: { item: 'Coors', price: 5.99, quantity: 2 },
-                2: { item: 'Red Bull', price: 7.99, quantity: 1 }
+const invoiceData = [
+    {
+        _id: "3356431",
+        invoiceNumber: 3356431,
+        description: "Holiday uptick",
+        companyName: "Test Company",
+        address: "123 Test St",
+        city: "Test City",
+        state: "TS",
+        zip: "12345",
+        createdAt: moment().day(-4),
+        products: [
+            {
+                itemName: "koolaid",
+                itemPrice: 50000,
+                deposit: 100,
+                discount: 50,
+                quantity: 5,
             },
-            totalAmount: 1000.00
-        }; // Example document
-
-        const result = await dbconnect.insertOne(invoice);
-
-        return res.status(201).json({ message: "Document inserted", result: result });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error inserting document" });
-    } finally {
-        await client.close();
-    }
-});
-
-
-
-
-
-
-
-// hash user password
-const hashUserPw = async (reqbody) => {
-    const password = reqbody.password;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = { username: reqbody.username, password: hashedPassword };
-
-    return newUser;
-}
-
-
-app.post('/api/register', async (req, res) => {
-    //PULL THIS OUT
-    // const url = 'mongodb://localhost:27017';
-    // const client = new MongoClient(url);
-    const dbName = 'columbiainvoices';
-    const db = client.db(dbName);
-    const collectionName = db.collection('users');
-    ////////////////////////////////////////////////////////////////
-
-
-    //  res.setHeader('Access-Control-Allow-Methods', 'Post');
-    try {
-        await client.connect();
-        const document = req.body; // Get data from the POST request body
-        const newUser = await hashUserPw(document);
-
-
-        const findUser = await collectionName.findOne({ username: newUser.username });
-        console.log('new user', findUser);
-        if (findUser) {
-            return res.status(409).json({ userexist: true, message: 'User already exists, please log in' });
-        } else {
-            const result = await collectionName.insertOne(newUser);
-            return res.status(201).json({ message: "User Registerd Succesfully", insertId: result.insertedId });
-        }
-
-
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error inserting document" });
-    } finally {
-        await client.close();
-    }
-});
-
-
-
-
-
-app.post('/api/login', async (req, res) => {
-    //PULL THIS OUT
-    // const url = 'mongodb://localhost:27017';
-    // const client = new MongoClient(url);
-    const dbName = 'columbiainvoices';
-    const db = client.db(dbName);
-    const collectionName = db.collection('users');
-    ////////////////////////////////////////////////////////////////
-
-    res.setHeader('Access-Control-Allow-Methods', 'POST');
-    // Secret key for JWT (you can store this securely in environment variables)
-    const JWT_SECRET = 'This is the secret key';
-
-
-    try {
-        await client.connect();
-        // res.status(200).json({ message: "Login successful", isValid: true, userid: 12345 });
-        const document = req.body; // Get data from the POST request body
-        if (!document.username || !document.password) {
-            return res.status(400).json({ message: 'Invalid username or password' });
-        }
-
-        const findUser = await collectionName.findOne({ username: document.username });
-        const isPasswordValid = await bcrypt.compare(document.password, findUser.password);
-        if (findUser && isPasswordValid) {
-
-            // const token = jwt.sign(
-            //     { userId: findUser._id, username: findUser.username },
-            //     JWT_SECRET,
-            //     { expiresIn: '1h' } // Token expires in 1 hour
-            // );
-
-            res.status(200).json({ message: "Login successful", isValid: true, userid: findUser._id });
-        } else {
-            return res.status(400).json({ message: 'Invalid username or password' });
-        }
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error');
-    } finally {
-        await client.close();
-    }
-
-
-});
-
-app.get('/api/getallexpenses', async (req, res) => {
-    //remove this
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-
-    try {
-        await client.connect();
-
-        const expenses = await dbconnect.find().toArray();
-
-        res.status(200).json(expenses);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error');
-    } finally {
-        await client.close();
-    }
-});
-
-
-app.get('/api/expenses/:userId', async (req, res) => {
-    //remove this
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    const userId = req.params.userId;
-    console.log('userID', userId);
-    try {
-        await client.connect();
-
-        const expenses = await dbconnect.find({ userid: userId }).toArray();
-
-        res.status(200).json(expenses);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error');
-    } finally {
-        await client.close();
-    }
-});
-////////////////INVOICES//////
-app.get('/api/invoices/:userId', async (req, res) => {
-    //remove this
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    const userId = req.params.userId;
-    console.log('userIDFROM INVOICES', userId);
-    try {
-        await client.connect();
-
-        const invoices = await dbconnect.find({ userid: userId }).toArray();
-
-        res.status(200).json(invoices);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Internal Server Error');
-    } finally {
-        await client.close();
-    }
-});
-
-//SEND AS JSON GENIOUS
-app.post('/api/addexpense', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Methods', 'POST');
-    try {
-        await client.connect();
-        const document = req.body; // Get data from the POST request body
-
-        const result = await dbconnect.insertOne(document);
-
-        return res.status(201).json({ message: "Document inserted", result: result });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error inserting document" });
-    } finally {
-        await client.close();
-    }
-});
-
-app.delete('/api/deleteexpense/:id', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Methods', 'DELETE');
-    try {
-        await client.connect();
-        const id = req.params.id;
-        console.log(id);
-        const result = await dbconnect.deleteOne({ _id: new ObjectId(id) });
-        console.log(result);
-        res.status(200).json({ message: "Document deleted" });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error deleting document" });
-    } finally {
-        await client.close();
-    }
-});
-
-app.patch('/api/editexpense', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Methods', 'PATCH');
-    try {
-        await client.connect();
-        const expense = req.body;
-        const id = expense._id;
-        delete expense._id;
-
-        const result = await dbconnect.updateOne({ _id: new ObjectId(id) }, { $set: expense });
-        res.status(200).json({ message: "Document updated" });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error updating document" });
-    } finally {
-        await client.close();
-    }
-});
-
-app.get('/api/getexpense/:id', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    try {
-        await client.connect();
-        const id = req.params.id;
-        const expense = await dbconnect.findOne({ _id: new ObjectId(id) });
-        res.status(200).json(expense);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error getting document" });
-    } finally {
-        await client.close();
-    }
-});
-
-app.get('/api/fuck', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    try {
-        const wtf = (n) => {
-            let counter = n;
-
-            return () => {
-                return counter++
+            {
+                itemName: "soda",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 20,
+            },
+            {
+                itemName: "green juice",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 35,
+            },
+        ],
+    },
+    {
+        _id: "3356792",
+        invoiceNumber: 3356792,
+        description: "Standard re-order",
+        companyName: "Test Company",
+        address: "123 Test St",
+        city: "Test City",
+        state: "TS",
+        zip: "12345",
+        createdAt: moment(),
+        products: [
+            {
+                itemName: "redbull",
+                itemPrice: 50000,
+                deposit: 100,
+                discount: 50,
+                quantity: 5,
+            },
+            {
+                itemName: "cider",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 15,
+            },
+            {
+                itemName: "ice tea",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "soda",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 15,
+            },
+            {
+                itemName: "maas",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "spirit",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 15,
+            },
+            {
+                itemName: "beer",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "wine",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "cider",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 15,
+            },
+            {
+                itemName: "ice tea",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "soda",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 15,
+            },
+            {
+                itemName: "maas",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "spirit",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 15,
+            },
+            {
+                itemName: "beer",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "wine",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "soda",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 15,
+            },
+            {
+                itemName: "maas",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "spirit",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 15,
+            },
+            {
+                itemName: "beer",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
+            },
+            {
+                itemName: "wine",
+                itemPrice: 50000,
+                deposit: 0,
+                discount: 0,
+                quantity: 250,
             }
-        }
+        ],
+    },
+    {
+        _id: "3356894",
+        invoiceNumber: 3356894,
+        description: "get down for the hodown",
+        companyName: "Test Company",
+        address: "123 Test St",
+        city: "Test City",
+        state: "TS",
+        zip: "12345",
+        createdAt: moment().day(-7),
+        products: [
+            {
+                itemName: "maas",
+                itemPrice: 50000,
+                deposit: 100,
+                discount: 50,
+                quantity: 5,
+            },
+            {
+                itemName: "beer",
+                itemPrice: 30000,
+                deposit: 0,
+                discount: 0,
+                quantity: 20,
+            },
+        ],
+    },
+    {
+        _id: "3356431",
+        invoiceNumber: 3356431,
+        description: "Summer ramp up",
+        companyName: "Test Company",
+        address: "123 Test St",
+        city: "Test City",
+        state: "TS",
+        zip: "12345",
+        createdAt: moment().day(-6),
+        products: [
+            {
+                itemName: "koolaid",
+                itemPrice: 50000,
+                deposit: 100,
+                discount: 50,
+                quantity: 5,
+            },
+            {
+                itemName: "special soda",
+                itemPrice: 30000000,
+                deposit: 0,
+                discount: 0,
+                quantity: 20,
+            },
+            {
+                itemName: "purple juice",
+                itemPrice: 50000000,
+                deposit: 0,
+                discount: 0,
+                quantity: 35,
+            },
+        ],
+    }
+];
 
-        const n = wtf(2)
-        console.log(n)
+//call all invoices
+app.get("/api/getinvoices", async (req, res) => {
+    try {
+        res.status(200).json(invoiceData);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Bad Request" });
+    }
+});
 
-        res.status(200);
+//call invoices by id
+app.get('/api/getinvoice/:id', async (req, res) => {
+    try {
+
+        const paramId = req.params.id;
+        //const singleInvoice = await dbconnect.findOne({ _id: new ObjectId(id) });
+        const singleInvoice = invoiceData.find((invoice) => invoice._id === paramId);
+        res.status(200).json(singleInvoice);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error getting document" });
     } finally {
-        console.log('cmonson')
+        // await client.close();
     }
 });
-
 
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
-
-
