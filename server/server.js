@@ -264,6 +264,7 @@ const invoiceData = [
 //call all invoices
 app.get("/api/getinvoices", async (req, res) => {
     try {
+        console.log('ive been hit,  the get all request')
         res.status(200).json(invoiceData);
     } catch (error) {
         console.error(error);
@@ -272,9 +273,10 @@ app.get("/api/getinvoices", async (req, res) => {
 });
 
 //call invoices by id
+//for future use possibly if state becomes to unmanageable
 app.get('/api/getinvoice/:id', async (req, res) => {
     try {
-
+        console.log('ive been hit,  the id request')
         const paramId = req.params.id;
         //const singleInvoice = await dbconnect.findOne({ _id: new ObjectId(id) });
         const singleInvoice = invoiceData.find((invoice) => invoice._id === paramId);
